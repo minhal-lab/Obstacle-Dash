@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Obstacle Dash Mobile</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <style>
+        * {
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: white;
+            margin: 0;
+            min-height: 100vh;
+            justify-content: center;
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+        }
+        
+        canvas {
+            border: 3px solid #4CAF50;
+            border-radius: 8px;
+            background: #2d2d2d;
+            max-width: 100%;
+            max-height: 70vh;
+        }
+
+        #gameContainer {
+            position: relative;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #score {
+            font-size: 24px;
+            margin: 10px;
+            color: #4CAF50;
+        }
+
+        #menu {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            display: none;
+            width: 80%;
+            max-width: 300px;
+        }
+
+        .button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            margin: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 18px;
+            transition: background 0.3s;
+            width: 80%;
+        }
+
+        .button:active {
+            background: #45a049;
+        }
+
+        #gameTitle {
+            font-size: 28px;
+            color: #4CAF50;
+            margin: 10px 0;
+        }
+
+        #controls {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-between;
+            padding: 20px;
+            z-index: 100;
+        }
+
+        .control-button {
+            background: rgba(76, 175, 80, 0.3);
+            border: 2px solid #4CAF50;
+            color: white;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            touch-action: none;
+        }
+
+        .control-button:active {
+            background: rgba(76, 175, 80, 0.5);
+        }
+
+        #instructions {
+            color: #888;
+            font-size: 14px;
+            text-align: center;
+            margin: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameTitle">OBSTACLE DASH</div>
+    <div id="gameContainer">
+        <div id="score">Score: 0</div>
+        <canvas id="gameCanvas" width="400" height="400"></canvas>
+        <div id="menu">
+            <h2 id="menuTitle">Game Over!</h2>
+            <p id="finalScore"></p>
+            <button class="button" onclick="startGame()">Start Game</button>
+            <button class="button" onclick="resetGame()">Try Again</button>
+        </div>
+    </div>
+    <div id="instructions">Tap left/right sides to move</div>
+    <div id="controls">
+        <div class="control-button" id="leftButton">←</div>
+        <div class="control-button" id="rightButton">→</div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const menu = document.getElementById('menu');
+        const menuTitle = document.getElementById('menuTitle');
+        const finalScore = document.getElementById('finalScore');
+        const leftButton = document.getElementById('leftButton');
+        const rightButton = document.getElementById('rightButton');
+
+        // Adjust canvas size for mobile
+        function resizeCanvas() {
+            const maxWidth = Math.min(window.innerWidth - 20, 400);
+            const maxHeight = Math.min(window.innerHeight * 0.6, 400);
+            const size = Math.min(maxWidth, maxHeight);
+            
+            canvas.style.width = size + 'px';
+            canvas.style.height = size + 'px';
+        }
+        
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Game objects
+        const player = {
+            x: canvas.width / 2,
+            y: canvas.height - 30,
+            width: 20,
+            height: 20,
+            speed: 6,
+            color: '#4CAF50'
+        };
+
+        const obstacles = [];
+        let score = 0;
+        let gameOver = false;
+        let gameStarted = false;
+
+        // Controls state
+        const keys = {
+            left: false,
+            right: false
+        };
+
+        // Touch controls
+        leftButton.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            keys.left = true;
+            if (!gameStarted && !gameOver) startGame();
+        });
+
+        leftButton.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            keys.left = false;
+        });
+
+        rightButton.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            keys.right = true;
+            if (!gameStarted && !gameOver) startGame();
+        });
+
+        rightButton.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            keys.right = false;
+        });
+
+        // Prevent scrolling while touching buttons
+        document.addEventListener('touchmove', (e) => {
+            if (e.target.classList.contains('control-button')) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        function showMenu(title, showFinalScore = false) {
+            menu.style.display = 'block';
+            menuTitle.textContent = title;
+            if (showFinalScore) {
+                finalScore.textContent = `Final Score: ${score}`;
+                finalScore.style.display = 'block';
+            } else {
+                finalScore.style.display = 'none';
+            }
+        }
+
+        function hideMenu() {
+            menu.style.display = 'none';
+        }
+
+        function startGame() {
+            gameStarted = true;
+            gameOver = false;
+            resetGame();
+            hideMenu();
+        }
+
+        function createObstacle() {
+            const width = 30;
+            const height = 20;
+            obstacles.push({
+                x: Math.random() * (canvas.width - width),
+                y: -height,
+                width: width,
+                height: height,
+                speed: 2 + Math.random() * 2,
+                color: '#ff4444'
+            });
+        }
+
+        function movePlayer() {
+            if (keys.left && player.x > 0) player.x -= player.speed;
+            if (keys.right && player.x < canvas.width - player.width) player.x += player.speed;
+        }
+
+        function moveObstacles() {
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                obstacles[i].y += obstacles[i].speed;
+                
+                if (obstacles[i].y > canvas.height) {
+                    obstacles.splice(i, 1);
+                    score++;
+                    scoreElement.textContent = `Score: ${score}`;
+                }
+            }
+        }
+
+        function checkCollisions() {
+            for (const obstacle of obstacles) {
+                if (player.x < obstacle.x + obstacle.width &&
+                    player.x + player.width > obstacle.x &&
+                    player.y < obstacle.y + obstacle.height &&
+                    player.y + player.height > obstacle.y) {
+                    gameOver = true;
+                    showMenu('Game Over!', true);
+                }
+            }
+        }
+
+        function draw() {
+            ctx.fillStyle = 'rgba(45, 45, 45, 0.2)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = player.color;
+            ctx.fillStyle = player.color;
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+            ctx.shadowBlur = 0;
+
+            for (const obstacle of obstacles) {
+                ctx.shadowBlur = 5;
+                ctx.shadowColor = obstacle.color;
+                ctx.fillStyle = obstacle.color;
+                ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+            }
+            ctx.shadowBlur = 0;
+
+            if (!gameStarted && !gameOver) {
+                ctx.fillStyle = '#fff';
+                ctx.font = '20px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('Tap to start', canvas.width/2, canvas.height/2);
+            }
+        }
+
+        function resetGame() {
+            player.x = canvas.width / 2;
+            obstacles.length = 0;
+            score = 0;
+            scoreElement.textContent = `Score: ${score}`;
+        }
+
+        function gameLoop() {
+            if (gameStarted && !gameOver) {
+                movePlayer();
+                moveObstacles();
+                checkCollisions();
+                
+                if (Math.random() < 0.02) {
+                    createObstacle();
+                }
+            }
+            
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        showMenu('Welcome to Obstacle Dash!');
+        gameLoop();
+    </script>
+</body>
+</html>
+<p style="color: #888; font-size: 14px;">Developed by Minhal Ali Baghoor</p>

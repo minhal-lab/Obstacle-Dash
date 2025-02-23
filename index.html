@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <link rel="manifest" href="manifest.json">
     <title>Obstacle Dash Mobile</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
@@ -121,6 +122,7 @@
         }
     </style>
 </head>
+<link rel="manifest" href="manifest.json">
 <body>
     <div id="gameTitle">OBSTACLE DASH</div>
     <div id="gameContainer">
@@ -212,6 +214,55 @@
                 e.preventDefault();
             }
         }, { passive: false });
+
+        // Prevent scrolling while touching buttons
+document.addEventListener('touchmove', (e) => {
+    if (e.target.classList.contains('control-button')) {
+        e.preventDefault();
+    }
+}, { passive: false });
+
+// ADD THE NEW CODE HERE:
+// Keyboard controls for PC
+document.addEventListener('keydown', (e) => {
+    e.preventDefault();
+    switch(e.key) {
+        case 'ArrowLeft':
+        case 'a':
+        case 'A':
+            keys.left = true;
+            if (!gameStarted && !gameOver) startGame();
+            break;
+        case 'ArrowRight':
+        case 'd':
+        case 'D':
+            keys.right = true;
+            if (!gameStarted && !gameOver) startGame();
+            break;
+        case 'r':
+        case 'R':
+            if (gameOver) resetGame();
+            break;
+        case ' ':
+            if (!gameStarted || gameOver) startGame();
+            break;
+    }
+});
+
+document.addEventListener('keyup', (e) => {
+    switch(e.key) {
+        case 'ArrowLeft':
+        case 'a':
+        case 'A':
+            keys.left = false;
+            break;
+        case 'ArrowRight':
+        case 'd':
+        case 'D':
+            keys.right = false;
+            break;
+    }
+});
 
         function showMenu(title, showFinalScore = false) {
             menu.style.display = 'block';
@@ -331,3 +382,4 @@
 </body>
 </html>
 <p style="color: #888; font-size: 14px;">Developed by Minhal Ali Baghoor</p>
+<p style="color: #888; font-size: 14px;">left and right arrow key to move if in Pc</p>

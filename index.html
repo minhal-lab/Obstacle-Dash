@@ -1,7 +1,5 @@
-<!DOCTYPE html>
 <html>
 <head>
-    <link rel="manifest" href="manifest.json">
     <title>Obstacle Dash Mobile</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
@@ -48,7 +46,7 @@
             color: #4CAF50;
         }
 
-        #menu {
+        #menu, #settingsMenu, #skinsMenu, #modesMenu {
             position: absolute;
             top: 50%;
             left: 50%;
@@ -120,19 +118,138 @@
             text-align: center;
             margin: 10px;
         }
+
+        #gameHeader {
+            display: flex;
+            width: 100%;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 10px;
+            max-width: 400px;
+        }
+
+        #settingsIcon {
+            font-size: 24px;
+            background: none;
+            border: none;
+            color: #4CAF50;
+            cursor: pointer;
+        }
+
+        .skin-option {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #333;
+            border-radius: 5px;
+            background: #222;
+        }
+
+        .skin-preview {
+            width: 30px;
+            height: 30px;
+            margin-right: 15px;
+        }
+
+        .game-mode {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            background: #222;
+        }
+
+        .mode-title {
+            color: #4CAF50;
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+
+        .mode-description {
+            color: #aaa;
+            font-size: 14px;
+        }
+
+        #soundIcon {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 24px;
+            color: #4CAF50;
+            background: none;
+            border: none;
+            z-index: 5;
+        }
     </style>
 </head>
-<link rel="manifest" href="manifest.json">
 <body>
-    <div id="gameTitle">OBSTACLE DASH</div>
+    <div id="gameHeader">
+        <div id="gameTitle">OBSTACLE DASH</div>
+        <button id="settingsIcon">⚙️</button>
+    </div>
     <div id="gameContainer">
         <div id="score">Score: 0</div>
+        <button id="soundIcon">🔊</button>
         <canvas id="gameCanvas" width="400" height="400"></canvas>
         <div id="menu">
             <h2 id="menuTitle">Game Over!</h2>
             <p id="finalScore"></p>
             <button class="button" onclick="startGame()">Start Game</button>
-            <button class="button" onclick="resetGame()">Try Again</button>
+            <button class="button" onclick="showSkinsMenu()">Character Skins</button>
+            <button class="button" onclick="showModesMenu()">Game Modes</button>
+            <button class="button" onclick="showSettingsMenu()">Settings</button>
+        </div>
+        
+        <div id="settingsMenu">
+            <h2>Settings</h2>
+            <p>Sound Effects: <span id="soundStatus">ON</span></p>
+            <button class="button" onclick="toggleSound()">Toggle Sound</button>
+            <p>Game Speed: <span id="speedStatus">Normal</span></p>
+            <button class="button" onclick="changeGameSpeed()">Change Speed</button>
+            <button class="button" onclick="hideSettingsMenu()">Back</button>
+        </div>
+        
+        <div id="skinsMenu">
+            <h2>Character Skins</h2>
+            <div class="skin-option" onclick="selectSkin('default')">
+                <div class="skin-preview" style="background-color: #4CAF50;"></div>
+                <div>
+                    <h3>Default</h3>
+                    <p>The classic green square</p>
+                </div>
+            </div>
+            <div class="skin-option" onclick="selectSkin('blue')">
+                <div class="skin-preview" style="background-color: #2196F3;"></div>
+                <div>
+                    <h3>Blue Lightning</h3>
+                    <p>A speedy blue variant</p>
+                </div>
+            </div>
+            <div class="skin-option" onclick="selectSkin('gold')">
+                <div class="skin-preview" style="background-color: #FFD700;"></div>
+                <div>
+                    <h3>Golden Legend</h3>
+                    <p>Play with style</p>
+                </div>
+            </div>
+            <button class="button" onclick="hideSkinsMenu()">Back</button>
+        </div>
+        
+        <div id="modesMenu">
+            <h2>Game Modes</h2>
+            <div class="game-mode" onclick="selectMode('classic')">
+                <div class="mode-title">Classic</div>
+                <div class="mode-description">Standard mode with increasing difficulty</div>
+            </div>
+            <div class="game-mode" onclick="selectMode('timeAttack')">
+                <div class="mode-title">Time Attack</div>
+                <div class="mode-description">More obstacles but more points</div>
+            </div>
+            <div class="game-mode" onclick="selectMode('zigzag')">
+                <div class="mode-title">Zigzag</div>
+                <div class="mode-description">Obstacles move in patterns</div>
+            </div>
+            <button class="button" onclick="hideModesMenu()">Back</button>
         </div>
     </div>
     <div id="instructions">Tap left/right sides to move</div>
@@ -142,6 +259,7 @@
     </div>
 
     <script>
+        // Main game elements
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const scoreElement = document.getElementById('score');
@@ -150,21 +268,26 @@
         const finalScore = document.getElementById('finalScore');
         const leftButton = document.getElementById('leftButton');
         const rightButton = document.getElementById('rightButton');
-
-        // Adjust canvas size for mobile
-        function resizeCanvas() {
-            const maxWidth = Math.min(window.innerWidth - 20, 400);
-            const maxHeight = Math.min(window.innerHeight * 0.6, 400);
-            const size = Math.min(maxWidth, maxHeight);
-            
-            canvas.style.width = size + 'px';
-            canvas.style.height = size + 'px';
-        }
+        const settingsIcon = document.getElementById('settingsIcon');
+        const settingsMenu = document.getElementById('settingsMenu');
+        const skinsMenu = document.getElementById('skinsMenu');
+        const modesMenu = document.getElementById('modesMenu');
+        const soundIcon = document.getElementById('soundIcon');
         
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
-
-        // Game objects
+        // Game state
+        let score = 0;
+        let gameOver = false;
+        let gameStarted = false;
+        let obstacles = [];
+        
+        // Game settings
+        let soundEnabled = true;
+        let gameSpeed = 1;
+        
+        // Game mode
+        let currentMode = 'classic';
+        
+        // Player object
         const player = {
             x: canvas.width / 2,
             y: canvas.height - 30,
@@ -173,18 +296,20 @@
             speed: 6,
             color: '#4CAF50'
         };
-
-        const obstacles = [];
-        let score = 0;
-        let gameOver = false;
-        let gameStarted = false;
-
+        
+        // Skins
+        const skins = {
+            'default': '#4CAF50',
+            'blue': '#2196F3',
+            'gold': '#FFD700'
+        };
+        
         // Controls state
         const keys = {
             left: false,
             right: false
         };
-
+        
         // Touch controls
         leftButton.addEventListener('touchstart', (e) => {
             e.preventDefault();
@@ -207,23 +332,8 @@
             e.preventDefault();
             keys.right = false;
         });
-
-        // Prevent scrolling while touching buttons
-        document.addEventListener('touchmove', (e) => {
-            if (e.target.classList.contains('control-button')) {
-                e.preventDefault();
-            }
-        }, { passive: false });
-
-        // Prevent scrolling while touching buttons
-document.addEventListener('touchmove', (e) => {
-    if (e.target.classList.contains('control-button')) {
-        e.preventDefault();
-    }
-}, { passive: false });
-
-// ADD THE NEW CODE HERE:
-// Keyboard controls for PC
+        
+        // Keyboard controls for PC
 document.addEventListener('keydown', (e) => {
     e.preventDefault();
     switch(e.key) {
@@ -264,6 +374,99 @@ document.addEventListener('keyup', (e) => {
     }
 });
 
+        // Settings Icon
+        settingsIcon.addEventListener('click', () => {
+            if (!gameStarted || gameOver) {
+                showSettingsMenu();
+            }
+        });
+        
+        // Sound Icon
+        soundIcon.addEventListener('click', toggleSound);
+        
+        // Adjust canvas size for mobile
+        function resizeCanvas() {
+            const maxWidth = Math.min(window.innerWidth - 20, 400);
+            const maxHeight = Math.min(window.innerHeight * 0.6, 400);
+            const size = Math.min(maxWidth, maxHeight);
+            
+            canvas.style.width = size + 'px';
+            canvas.style.height = size + 'px';
+        }
+        
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+        
+        // Toggle sound on/off
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            soundIcon.textContent = soundEnabled ? '🔊' : '🔇';
+            document.getElementById('soundStatus').textContent = soundEnabled ? 'ON' : 'OFF';
+        }
+        
+        // Change game speed
+        function changeGameSpeed() {
+            if (gameSpeed === 1) {
+                gameSpeed = 1.5;
+                document.getElementById('speedStatus').textContent = 'Fast';
+            } else if (gameSpeed === 1.5) {
+                gameSpeed = 2;
+                document.getElementById('speedStatus').textContent = 'Very Fast';
+            } else {
+                gameSpeed = 1;
+                document.getElementById('speedStatus').textContent = 'Normal';
+            }
+        }
+        
+        // Show settings menu
+        function showSettingsMenu() {
+            settingsMenu.style.display = 'block';
+            menu.style.display = 'none';
+        }
+        
+        // Hide settings menu
+        function hideSettingsMenu() {
+            settingsMenu.style.display = 'none';
+            menu.style.display = 'block';
+        }
+        
+        // Show skins menu
+        function showSkinsMenu() {
+            skinsMenu.style.display = 'block';
+            menu.style.display = 'none';
+        }
+        
+        // Hide skins menu
+        function hideSkinsMenu() {
+            skinsMenu.style.display = 'none';
+            menu.style.display = 'block';
+        }
+        
+        // Select skin
+        function selectSkin(skin) {
+            player.color = skins[skin];
+            hideSkinsMenu();
+        }
+        
+        // Show modes menu
+        function showModesMenu() {
+            modesMenu.style.display = 'block';
+            menu.style.display = 'none';
+        }
+        
+        // Hide modes menu
+        function hideModesMenu() {
+            modesMenu.style.display = 'none';
+            menu.style.display = 'block';
+        }
+        
+        // Select game mode
+        function selectMode(mode) {
+            currentMode = mode;
+            hideModesMenu();
+        }
+        
+        // Show menu
         function showMenu(title, showFinalScore = false) {
             menu.style.display = 'block';
             menuTitle.textContent = title;
@@ -274,60 +477,125 @@ document.addEventListener('keyup', (e) => {
                 finalScore.style.display = 'none';
             }
         }
-
+        
+        // Hide menu
         function hideMenu() {
             menu.style.display = 'none';
         }
-
+        
+        // Start game
         function startGame() {
             gameStarted = true;
             gameOver = false;
             resetGame();
             hideMenu();
         }
-
+        
+        // Create obstacle
         function createObstacle() {
             const width = 30;
             const height = 20;
+            let x, y, speed, color;
+            
+            // Different behavior based on game mode
+            switch(currentMode) {
+                case 'timeAttack':
+                    // More obstacles, faster
+                    x = Math.random() * (canvas.width - width);
+                    y = -height;
+                    speed = (2 + Math.random() * 3) * gameSpeed;
+                    color = '#ff4444';
+                    break;
+                    
+                case 'zigzag':
+                    // Obstacles move in patterns
+                    x = Math.random() * (canvas.width - width);
+                    y = -height;
+                    speed = (2 + Math.random()) * gameSpeed;
+                    color = '#ff8800';
+                    // Add zigzag behavior
+                    const direction = Math.random() > 0.5 ? 1 : -1;
+                    const amplitude = 1 + Math.random() * 2;
+                    obstacles.push({
+                        x, y, width, height, speed, color,
+                        zigzag: true,
+                        direction,
+                        amplitude,
+                        initialX: x
+                    });
+                    return;
+                    
+                default: // classic
+                    x = Math.random() * (canvas.width - width);
+                    y = -height;
+                    speed = (2 + Math.random() * 2) * gameSpeed;
+                    color = '#ff4444';
+                    break;
+            }
+            
             obstacles.push({
-                x: Math.random() * (canvas.width - width),
-                y: -height,
-                width: width,
-                height: height,
-                speed: 2 + Math.random() * 2,
-                color: '#ff4444'
+                x, y, width, height, speed, color,
+                zigzag: false
             });
         }
-
+        
+        // Move player
         function movePlayer() {
             if (keys.left && player.x > 0) player.x -= player.speed;
             if (keys.right && player.x < canvas.width - player.width) player.x += player.speed;
         }
-
+        
+        // Move obstacles
         function moveObstacles() {
             for (let i = obstacles.length - 1; i >= 0; i--) {
                 obstacles[i].y += obstacles[i].speed;
                 
+                // Handle zigzag obstacles
+                if (obstacles[i].zigzag) {
+                    obstacles[i].x = obstacles[i].initialX + 
+                                    Math.sin(obstacles[i].y * 0.05) * 
+                                    obstacles[i].amplitude * 
+                                    obstacles[i].direction * 10;
+                    
+                    // Keep within bounds
+                    if (obstacles[i].x < 0) obstacles[i].x = 0;
+                    if (obstacles[i].x > canvas.width - obstacles[i].width) 
+                        obstacles[i].x = canvas.width - obstacles[i].width;
+                }
+                
                 if (obstacles[i].y > canvas.height) {
                     obstacles.splice(i, 1);
-                    score++;
+                    
+                    // Score varies by game mode
+                    let points = 1;
+                    if (currentMode === 'timeAttack') points = 2;
+                    
+                    score += points;
                     scoreElement.textContent = `Score: ${score}`;
                 }
             }
         }
-
+        
+        // Check collisions
         function checkCollisions() {
             for (const obstacle of obstacles) {
                 if (player.x < obstacle.x + obstacle.width &&
                     player.x + player.width > obstacle.x &&
                     player.y < obstacle.y + obstacle.height &&
                     player.y + player.height > obstacle.y) {
+                    
+                    // Vibrate if available
+                    if (navigator.vibrate) {
+                        navigator.vibrate(200);
+                    }
+                    
                     gameOver = true;
                     showMenu('Game Over!', true);
                 }
             }
         }
-
+        
+        // Draw game
         function draw() {
             ctx.fillStyle = 'rgba(45, 45, 45, 0.2)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -353,21 +621,27 @@ document.addEventListener('keyup', (e) => {
                 ctx.fillText('Tap to start', canvas.width/2, canvas.height/2);
             }
         }
-
+        
+        // Reset game
         function resetGame() {
             player.x = canvas.width / 2;
             obstacles.length = 0;
             score = 0;
             scoreElement.textContent = `Score: ${score}`;
         }
-
+        
+        // Game loop
         function gameLoop() {
             if (gameStarted && !gameOver) {
                 movePlayer();
                 moveObstacles();
                 checkCollisions();
                 
-                if (Math.random() < 0.02) {
+                // Create obstacles at different rates based on mode
+                let obstacleChance = 0.02;
+                if (currentMode === 'timeAttack') obstacleChance = 0.03;
+                
+                if (Math.random() < obstacleChance * gameSpeed) {
                     createObstacle();
                 }
             }
@@ -376,10 +650,13 @@ document.addEventListener('keyup', (e) => {
             requestAnimationFrame(gameLoop);
         }
 
+        // Initialize game
         showMenu('Welcome to Obstacle Dash!');
         gameLoop();
     </script>
 </body>
 </html>
-<p style="color: #888; font-size: 14px;">Developed by Minhal Ali Baghoor</p>
-<p style="color: #888; font-size: 14px;">left and right arrow key to move if in Pc</p>
+
+<div id="instructions">Tap left/right sides to move or use Arrow Keys/WASD If On PC</div>
+
+<div id="instructions">Developed By Malik Muhammad Minhal Ali Baghoor</div>
